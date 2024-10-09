@@ -7,7 +7,8 @@ import numpy as np
 import torchvision.transforms.functional as F
 from torch.utils.data import DataLoader
 from PIL import Image
-from scipy.misc import imread
+#from scipy.misc import imread
+from imageio import imread
 from skimage.feature import canny
 from skimage.color import rgb2gray, gray2rgb
 from .utils import create_mask
@@ -21,6 +22,12 @@ class Dataset(torch.utils.data.Dataset):
         self.data = self.load_flist(flist)
         self.edge_data = self.load_flist(edge_flist)
         self.mask_data = self.load_flist(mask_flist)
+        """ print(flist)
+        print(self.data)
+        #for i in self.data: print(i)
+        print(mask_flist)
+        print(self.mask_data)
+        exit() """
 
         self.input_size = config.INPUT_SIZE
         self.sigma = config.SIGMA
@@ -79,7 +86,13 @@ class Dataset(torch.utils.data.Dataset):
             img_gray = img_gray[:, ::-1, ...]
             edge = edge[:, ::-1, ...]
             mask = mask[:, ::-1, ...]
-
+            
+        #print(img.shape, img_gray.shape, edge.shape, mask.shape)
+        #if img.shape != (256, 256, 3) or img_gray.shape!= (256,256) or edge.shape != (256.256) or mask.shape!=(256,256):
+        #print(index)
+        #print(self.mask_data[index])
+        #print(img.shape, img_gray.shape, edge.shape, mask.shape)
+        #exit()
         return self.to_tensor(img), self.to_tensor(img_gray), self.to_tensor(edge), self.to_tensor(mask)
 
     def load_edge(self, img, index, mask):
@@ -99,7 +112,7 @@ class Dataset(torch.utils.data.Dataset):
             if sigma == 0:
                 sigma = random.randint(1, 4)
 
-            return canny(img, sigma=sigma, mask=mask).astype(np.float)
+            return canny(img, sigma=sigma, high_threshold=0.2, low_threshold=0.1, mask=mask,).astype(np.float)
 
         # external
         else:
@@ -146,7 +159,9 @@ class Dataset(torch.utils.data.Dataset):
         if mask_type == 6:
             mask = imread(self.mask_data[index])
             mask = self.resize(mask, imgh, imgw, centerCrop=False)
-            mask = rgb2gray(mask)
+            #mask = rgb2gray(mask)
+            if mask.ndim != 2:
+                mask = rgb2gray(mask[:,:,:3])
             mask = (mask > 0).astype(np.uint8) * 255
             return mask
 
@@ -165,12 +180,14 @@ class Dataset(torch.utils.data.Dataset):
             i = (imgw - side) // 2
             img = img[j:j + side, i:i + side, ...]
 
-        img = scipy.misc.imresize(img, [height, width])
-
+        #img = scipy.misc.imresize(img, [height, width])
+        import cv2
+        img = cv2.resize(img, (width, height))
         return img
 
     def load_flist(self, flist):
         if isinstance(flist, list):
+            print("is list")
             return flist
 
         # flist: image file path, image directory path, text file flist path
@@ -178,11 +195,14 @@ class Dataset(torch.utils.data.Dataset):
             if os.path.isdir(flist):
                 flist = list(glob.glob(flist + '/*.jpg')) + list(glob.glob(flist + '/*.png'))
                 flist.sort()
+                #print("is str")
                 return flist
 
             if os.path.isfile(flist):
+                #print("is flist")
                 try:
                     return np.genfromtxt(flist, dtype=np.str, encoding='utf-8')
+                    #print("hi")
                 except:
                     return [flist]
 

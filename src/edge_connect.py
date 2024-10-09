@@ -74,7 +74,8 @@ class EdgeConnect():
         train_loader = DataLoader(
             dataset=self.train_dataset,
             batch_size=self.config.BATCH_SIZE,
-            num_workers=4,
+            #num_workers=4,
+            num_workers=0,
             drop_last=True,
             shuffle=True
         )
@@ -88,7 +89,7 @@ class EdgeConnect():
         if total == 0:
             print('No training data was provided! Check \'TRAIN_FLIST\' value in the configuration file.')
             return
-
+        #print(total)
         while(keep_training):
             epoch += 1
             print('\n\nTraining epoch: %d' % epoch)
@@ -96,10 +97,13 @@ class EdgeConnect():
             progbar = Progbar(total, width=20, stateful_metrics=['epoch', 'iter'])
 
             for items in train_loader:
+                #print(len(items))
                 self.edge_model.train()
                 self.inpaint_model.train()
 
                 images, images_gray, edges, masks = self.cuda(*items)
+                #print(images.shape, images_gray.shape, edges.shape, masks.shape)
+                #exit()
 
                 # edge model
                 if model == 1:

@@ -60,9 +60,9 @@ class EdgeModel(BaseModel):
         # discriminator input: (grayscale(1) + edge(1))
         generator = EdgeGenerator(use_spectral_norm=True)
         discriminator = Discriminator(in_channels=2, use_sigmoid=config.GAN_LOSS != 'hinge')
-        if len(config.GPU) > 1:
+        """ if len(config.GPU) > 1:
             generator = nn.DataParallel(generator, config.GPU)
-            discriminator = nn.DataParallel(discriminator, config.GPU)
+            discriminator = nn.DataParallel(discriminator, config.GPU) """
         l1_loss = nn.L1Loss()
         adversarial_loss = AdversarialLoss(type=config.GAN_LOSS)
 
@@ -100,6 +100,7 @@ class EdgeModel(BaseModel):
 
 
         # discriminator loss
+        #print(images.shape, outputs.detach().shape)
         dis_input_real = torch.cat((images, edges), dim=1)
         dis_input_fake = torch.cat((images, outputs.detach()), dim=1)
         dis_real, dis_real_feat = self.discriminator(dis_input_real)        # in: (grayscale(1) + edge(1))
@@ -141,12 +142,20 @@ class EdgeModel(BaseModel):
         return outputs
 
     def backward(self, gen_loss=None, dis_loss=None):
-        if dis_loss is not None:
+        """ if dis_loss is not None:
             dis_loss.backward()
         self.dis_optimizer.step()
 
         if gen_loss is not None:
             gen_loss.backward()
+        self.gen_optimizer.step() """
+        
+        if dis_loss is not None:
+            dis_loss.backward()
+        if gen_loss is not None:
+            gen_loss.backward()
+            
+        self.dis_optimizer.step()
         self.gen_optimizer.step()
 
 
